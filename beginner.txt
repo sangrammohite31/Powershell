@@ -1,0 +1,9 @@
+Get-Process -Name Notepad
+basic syntax powershell cmd works in Vreb  and noun format
+
+
+
+Test-Connection -Computername goopgle.com
+y does it only works 4 time not more or less bcz it has a default Count parameter
+
+
