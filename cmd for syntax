@@ -1,0 +1,4 @@
+Want the syntx of any command 
+the command goes like 
+
+Get-Command -Name "//command name" -Syntax
