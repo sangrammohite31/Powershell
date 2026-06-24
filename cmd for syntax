@@ -2,3 +2,75 @@ Want the syntx of any command
 the command goes like 
 
 Get-Command -Name "//command name" -Syntax
+
+
+
+??
+Write-Output "Starting NXLog uninstall..."
+
+# 1. Stop and disable NXLog service
+Write-Output "Stopping and disabling NXLog service..."
+
+Get-Service | Where-Object { $_.Name -match "nxlog" } | ForEach-Object {
+    try {
+        Stop-Service $_.Name -Force -ErrorAction SilentlyContinue
+        Set-Service $_.Name -StartupType Disabled -ErrorAction SilentlyContinue
+        Write-Output "Stopped and disabled service: $($_.Name)"
+    } catch {
+        Write-Output "Failed to stop service: $($_.Name)"
+    }
+}
+
+# 2. Find NXLog in Control Panel (registry uninstall list)
+$apps = Get-ItemProperty `
+HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, `
+HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
+Where-Object { $_.DisplayName -like "*NXLog*" }
+
+if ($apps) {
+    Write-Output "NXLog found. Starting uninstall..."
+
+    foreach ($app in $apps) {
+        if ($app.UninstallString) {
+            $cmd = $app.UninstallString
+
+            if ($cmd -match "msiexec") {
+                # Convert install to uninstall
+                $cmd = $cmd -replace "/I","/X"
+
+                Write-Output "Running MSI uninstall..."
+                Start-Process "cmd.exe" -ArgumentList "/c $cmd /quiet /norestart" -Wait
+            }
+            else {
+                Write-Output "Running EXE uninstall..."
+                Start-Process "cmd.exe" -ArgumentList "/c $cmd" -Wait
+            }
+        }
+    }
+}
+else {
+    Write-Output "NXLog not found in registry — unexpected scenario."
+}
+
+# 3. Remove NXLog folders
+Write-Output "Removing NXLog folders..."
+
+$folders = @(
+    "C:\Program Files\nxlog",
+    "C:\Program Files (x86)\nxlog"
+)
+
+foreach ($folder in $folders) {
+    if (Test-Path $folder) {
+        Remove-Item $folder -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Output "Deleted folder: $folder"
+    }
+}
+
+# 4. Delete NXLog service (cleanup)
+Write-Output "Deleting NXLog service..."
+
+Get-Service | Where-Object { $_.Name -match "nxlog" } |
+ForEach-Object { sc.exe delete $_.Name }
+
+Write-Output "NXLog uninstall completed."
