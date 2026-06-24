@@ -1,0 +1,12 @@
+# Delete specific local users if they exist
+
+$users = @('ccpadmin1', 'ccproot1')
+
+foreach ($user in $users) {
+    if (Get-LocalUser -Name $user -ErrorAction SilentlyContinue) {
+        Remove-LocalUser -Name $user -Confirm:$false
+        Write-Output "Deleted user: $user"
+    } else {
+        Write-Output "User not found: $user"
+    }
+}
